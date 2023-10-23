@@ -1,0 +1,48 @@
+<?php
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_webform_submission_insert().
+ */
+function test_webform_submission_insert(WebformSubmissionInterface $webform_submission)
+{
+    // Check if the webform submission contains a file upload field (e.g., 'file_upload').
+    // dd($webform_submission);
+    if ($webform_submission->hasData('file_upload')) {
+        $file_data = $webform_submission->getData('file_upload');
+        $file_path = $file_data[0]['file']['uri'];
+        $file_extension = pathinfo($file_path, PATHINFO_EXTENSION);
+
+        $file_name = $file_data[0]['file']['name'];
+        dd($file_name);
+
+        // Define media type mappings for different file extensions.
+        $media_type_mapping = [
+            'pdf' => 'document',      // Replace with the actual media type machine name for PDF files.
+            'mp4' => 'video',    // Replace with the actual media type machine name for video files.
+            // Add more mappings for other file extensions.
+        ];
+
+        // Check if the file extension is mapped to a media type.
+        if (isset($media_type_mapping[$file_extension])) {
+            $media_type_machine_name = $media_type_mapping[$file_extension];
+
+            // Create a media entity of the specified media type.
+            $media_entity = \Drupal::entityTypeManager()->getStorage('media')->create([
+                'bundle' => $media_type_machine_name,
+                // You can set additional fields and properties here.
+                'name' => t('Uploaded Media'),
+                'field_media_file' => [
+                    'target_id' => $file_data[0]['file']['fid'],
+                ],
+            ]);
+
+            // Save the media entity.
+            $media_entity->save();
+
+            // Display a message to indicate that the media entity has been created.
+            drupal_set_message(t('A @media_type media has been created for the uploaded file.', ['@media_type' => $media_type_machine_name]));
+        }
+    }
+}
